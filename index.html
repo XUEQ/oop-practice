@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		
+		<style type="text/css">
+			body{background: #fff;}
+			#game{
+				width: 400px;
+				height: 400px;
+				background: #000;
+				margin: 50px auto;
+				position: relative;
+				
+			}
+			.bullet{
+				position: absolute;
+				width: 14px;height: 14px;border-radius: 50%;
+				background: #fff;
+				top:0;left:0;
+			}
+			.plane{
+				position: absolute;
+				background: url(plane2.png) no-repeat ;
+				width: 32px;
+				height: 32px;
+			}
+			.timer{color:#fff;}
+		</style>
+	</head>
+	<body>
+		<div id="game">
+			<!--<div class="timer">你已经坚持了<span id="timer">0</span>s</div>-->
+		</div>
+		
+		<script type="text/javascript">
+			
+			function getR(m,n){//随机获取数值的函数
+				return  Math.round(  m + (n-m)*Math.random() );
+			}
+			
+			var colors = ["#333","#f12","red","blue","green","yellow"];
+	//子弹对象;
+			function Bullet(){
+				
+				this.ele = document.createElement("span");
+				this.ele.className="bullet";
+				this.x = getR(20,100);
+				this.y = getR(20,100);
+				this.ele.style.backgroundColor = colors[ getR(0,colors.length-1)]
+				this.ele.style.left = this.x  + "px";
+				this.ele.style.top  = this.y  + "px";
+				
+				
+				this.speedX = Math.random() > 0.5 ?  getR(2,5) : -1 * getR(2,5);
+				this.speedY = Math.random() > 0.5 ?  getR(2,5) : -1 * getR(2,5);
+				
+				document.getElementById("game").appendChild(this.ele);
+
+			}
+	//子弹的move方法;		
+			Bullet.prototype.move = function(){
+
+				this.x += this.speedX;
+				this.y += this.speedY;
+				
+				//子弹遇到边界后调头
+				
+				//对于水平方向，如果this.x> 400 ， this.x < 0调头
+				
+				this.speedX = this.x > 400-20 ? this.speedX * -1  : this.speedX;
+				this.speedY = this.y > 400-20 ? this.speedY * -1  : this.speedY;
+				
+				//对于垂直方向，如果this.y> 400 ， this.y < 0调头
+				
+				this.speedX = this.x < 0 ? this.speedX * -1  : this.speedX;
+				this.speedY = this.y < 0 ? this.speedY * -1  : this.speedY;
+				
+				this.ele.style.left = this.x + "px";
+				this.ele.style.top  = this.y  + "px";
+			}
+			
+			//
+			
+			var timer = {
+				ele:document.createElement("div"),
+				time:0,
+				start:0,
+				init:function(){
+					this.start = Date.now();
+					this.ele.innerHTML = "你已经坚持了"+ this.time+ "s";
+					this.ele.className = "timer";
+					document.getElementById("game").appendChild(this.ele);
+				},
+				move:function(){
+					this.time = parseInt( (Date.now() - this.start)/100)/10;
+					this.ele.innerHTML = "你已经坚持了"+ this.time+ "s";
+				}
+			}
+			
+	//游戏的对象;
+			var game = {
+				status:{
+					37:false,
+					38:false,
+					39:false,
+					40:false
+				},//初始情况：四个方向键，一个键都没有按下
+				start:function(){
+					var that = this;
+					plane.init();
+					timer.init();
+					
+					this.act.push(plane);
+					this.act.push(timer);
+					
+					document.body.addEventListener("keydown",function(e){
+						console.info(e.keyCode)
+						that.status.hasOwnProperty(e.keyCode) && (that.status[e.keyCode] = true);
+					});
+					
+					document.body.addEventListener("keyup",function(e){
+						console.info(e.keyCode)
+						that.status.hasOwnProperty(e.keyCode) && (that.status[e.keyCode] = false);
+					});
+						
+					var that = this;
+					for(var i = 0; i< this.number;i++){
+						this.act.push( new Bullet() );
+					}
+					var start = Date.now();
+					setInterval(function(){	
+						
+						
+						if( !that.isOver()){
+							for(var i = 0; i< that.act.length;i++){
+								that.act[i].move();
+							}
+						}
+						else{
+							console.info("over")
+						}
+						
+						
+					},50)
+				},
+				isOver:function(){
+					//看有没有子弹撞到了飞机
+					var flag = false; //假设没有子弹撞到了飞机
+					
+					//飞机的中心
+					var plane_c_x = plane.x + 32/2;
+					var plane_c_y = plane.y + 32/2;
+					//通过循环，对所有的子弹，检查它们与飞机之间的距离，如果这个距离小于20，则说明撞上了
+					
+					for(var i = 0 ; i< game.act.length;i++){
+						var t = game.act[i];
+						if( t.constructor === Bullet ){
+							//子弹的中心
+							var x = t.x + t.ele.offsetWidth/2;
+							var y = t.y + t.ele.offsetHeight/2;
+							
+							if( Math.pow(x-plane_c_x,2) + Math.pow(y-plane_c_y,2) < 20*20 ){
+								
+								flag = true;
+								break;
+							}
+						}
+					}
+					return flag;
+					
+				},
+				act:[],
+				number:20,// 子弹的数量
+				
+			}
+	//飞机的对象		
+			var plane = {
+				speed:4,
+				x:400/2,
+				y:400/2,  //飞机最初的位置
+				ele:document.createElement("div"),
+				init:function(){
+					this.ele.className="plane";
+					this.ele.style.left = this.x +"px";
+					this.ele.style.top = this.y + "px";
+					document.getElementById("game").appendChild(this.ele);
+				},
+				move:function(){
+				    if(game.status[38] && game.status[39]){
+						console.info("右上")
+						plane.y -= this.speed;
+						plane.x += this.speed;					
+						this.ele.style.transform = "rotateZ(45deg)";
+					}
+					else if(game.status[40] && game.status[39]){
+						console.info("右下")
+						
+						plane.y += this.speed;
+						plane.x += this.speed;
+						
+						this.ele.style.transform = "rotateZ(135deg)"
+					}
+					else if(game.status[38] && game.status[37]){
+						console.info("左上")
+						
+						plane.y -= this.speed;
+						plane.x -= this.speed;
+						this.ele.style.transform = "rotateZ(-45deg)"
+					}
+					else if(game.status[40] && game.status[37]){
+						
+						console.info("左下")
+						
+						plane.y += this.speed;
+						plane.x -= this.speed;
+						
+						this.ele.style.transform = "rotateZ(-135deg)"
+					}
+					else if(game.status[38]){
+						//向上
+						plane.y -= this.speed;
+						
+						this.ele.style.transform = "rotateZ(0deg)"
+					}
+					else if(game.status[40]){
+						//向下
+						plane.y += this.speed;
+						
+						this.ele.style.transform = "rotateZ(180deg)"
+					}
+					else if(game.status[39]){
+						//向右
+						plane.x += this.speed;
+						
+						this.ele.style.transform = "rotateZ(90deg)"
+					}
+					else if(game.status[37]){
+						//向左
+						plane.x -= this.speed;
+						this.ele.style.transform = "rotateZ(-90deg)"
+					}
+					
+					plane.ele.style.top  = plane.y +"px";
+					plane.ele.style.left = plane.x +"px";
+						
+				}
+			}
+			
+			game.start();
+			
+//			var b1 = new Bullet();
+//			
+//			setInterval(function(){
+//				b1.move();
+//			},50)
+			
+		</script>
+	</body>
+</html>
